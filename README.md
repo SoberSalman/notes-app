@@ -35,7 +35,7 @@ This app needs the following environment Variables
 The most easy way to install the entire project is using docker-compose:
 
 ```shell
-git clone https://github.com/FaztTech/nodejs-notes-app
+git clone https://github.com/SoberSalman/notes-app
 cd nodejs-notes-app
 docker-compose up
 ```
