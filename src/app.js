@@ -5,12 +5,18 @@ import methodOverride from "method-override";
 import flash from "connect-flash";
 import passport from "passport";
 import morgan from "morgan";
-import MongoStore from "connect-mongo";
+import pgSession from "connect-pg-simple";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
-import { MONGODB_URI, PORT } from "./config.js";
+import { PORT, DB_CONFIG } from "./config.js";
+import sequelize from "./database.js";
 
+// Import models to ensure they're initialized
+import "./models/User.js";
+import "./models/Note.js";
+
+// Routes
 import indexRoutes from "./routes/index.routes.js";
 import notesRoutes from "./routes/notes.routes.js";
 import userRoutes from "./routes/auth.routes.js";
@@ -19,6 +25,7 @@ import "./config/passport.js";
 // Initializations
 const app = express();
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const PgStore = pgSession(session);
 
 // settings
 app.set("port", PORT);
@@ -30,7 +37,12 @@ const hbs = exphbs.create({
   layoutsDir: join(app.get("views"), "layouts"),
   partialsDir: join(app.get("views"), "partials"),
   extname: ".hbs",
-});
+  // Add this option to fix prototype access warnings
+  runtimeOptions: {
+    allowProtoPropertiesByDefault: true,
+    allowProtoMethodsByDefault: true
+  }
+}); 
 app.engine(".hbs", hbs.engine);
 app.set("view engine", ".hbs");
 
@@ -40,10 +52,21 @@ app.use(express.urlencoded({ extended: false }));
 app.use(methodOverride("_method"));
 app.use(
   session({
+    store: new PgStore({
+      conObject: {
+        host: DB_CONFIG.host,
+        port: DB_CONFIG.port,
+        user: DB_CONFIG.username,
+        password: DB_CONFIG.password,
+        database: DB_CONFIG.database,
+      },
+      tableName: 'session',
+      createTableIfMissing: true
+    }),
     secret: "secret",
-    resave: true,
-    saveUninitialized: true,
-    store: MongoStore.create({ mongoUrl: MONGODB_URI }),
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 30 * 24 * 60 * 60 * 1000 } // 30 days
   })
 );
 app.use(passport.initialize());

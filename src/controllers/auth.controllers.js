@@ -1,5 +1,5 @@
-import User from "../models/User.js";
 import passport from "passport";
+import User from "../models/User.js";
 
 export const renderSignUpForm = (req, res) => res.render("auth/signup");
 
@@ -9,11 +9,9 @@ export const signup = async (req, res) => {
   if (password !== confirm_password) {
     errors.push({ text: "Passwords do not match." });
   }
-
   if (password.length < 4) {
     errors.push({ text: "Passwords must be at least 4 characters." });
   }
-
   if (errors.length > 0) {
     return res.render("auth/signup", {
       errors,
@@ -24,19 +22,26 @@ export const signup = async (req, res) => {
     });
   }
 
-  // Look for email coincidence
-  const userFound = await User.findOne({ email: email });
-  if (userFound) {
-    req.flash("error_msg", "The Email is already in use.");
-    return res.redirect("/auth/signup");
-  }
+  try {
+    // Check if email exists
+    const userFound = await User.findOne({ where: { email } });
+    if (userFound) {
+      req.flash("error_msg", "The Email is already in use.");
+      return res.redirect("/auth/signup");
+    }
 
-  // Saving a New User
-  const newUser = new User({ name, email, password });
-  newUser.password = await newUser.encryptPassword(password);
-  await newUser.save();
-  req.flash("success_msg", "You are registered.");
-  res.redirect("/auth/signin");
+    // Create new user
+    const newUser = User.build({ name, email });
+    newUser.password = await newUser.encryptPassword(password);
+    await newUser.save();
+    
+    req.flash("success_msg", "You are registered.");
+    res.redirect("/auth/signin");
+  } catch (error) {
+    console.error("Error during signup:", error);
+    req.flash("error_msg", "Error during registration");
+    res.redirect("/auth/signup");
+  }
 };
 
 export const renderSigninForm = (req, res) => res.render("auth/signin");

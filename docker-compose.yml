@@ -8,27 +8,41 @@ services:
     ports:
       - 4000:4000
     depends_on:
-      - mongo
+      postgres:
+        condition: service_healthy
     environment:
-      - MONGODB_URI=mongodb://mongo:27017/notesdb
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=notesapp
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
       - PORT=4000
       - NODE_ENV=development
     networks:
       - app-network
 
-  mongo:
+  postgres:
     container_name: database
-    image: mongo
+    image: postgres:14
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=notesapp
     volumes:
-      - mongodb_data:/data/db
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  mongodb_data:
+  postgres_data:
 
 networks:
   app-network:

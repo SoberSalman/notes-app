@@ -1,18 +1,21 @@
 import User from "../models/User.js";
 
-export const createAdminUser = async () => {
-  const userFound = await User.findOne({ email: "admin@localhost" });
+export async function createAdminUser() {
+  try {
+    const userFound = await User.findOne({ where: { email: "admin@localhost" } });
+    
+    if (userFound) return;
 
-  if (userFound) return;
-
-  const newUser = new User({
-    username: "admin",
-    email: "admin@localhost",
-  });
-
-  newUser.password = await newUser.encryptPassword("adminpassword");
-
-  const admin = await newUser.save();
-
-  console.log("Admin user created", admin);
-};
+    const newUser = User.build({
+      name: "Admin",
+      email: "admin@localhost"
+    });
+    
+    newUser.password = await newUser.encryptPassword("adminpassword");
+    await newUser.save();
+    
+    console.log("Admin user created");
+  } catch (error) {
+    console.error(error);
+  }
+}
